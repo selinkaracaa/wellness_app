@@ -39,7 +39,7 @@ interface AppContextType {
 
 const defaultState: AppState = {
   userName: 'You',
-  avatar: '🌿',
+  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=85&auto=format&fit=crop',
   level: 5,
   xp: 340,
   xpToNextLevel: 500,
