@@ -1,34 +1,19 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import { FRIEND_ACTIVITIES, CHALLENGES, BADGES } from '../data/mockData'
-import type { FriendActivity, Challenge, Badge } from '../data/mockData'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { api, getToken, setToken, clearToken, ApiError } from '../api/client'
+import type { AppState } from '../api/types'
 
-export interface CheckInEntry {
-  date: string
-  answers: Record<string, number>
-  xpEarned: number
-  completedAt: string
-}
+export type { AppState } from '../api/types'
 
-export interface AppState {
-  userName: string
-  avatar: string
-  level: number
-  xp: number
-  xpToNextLevel: number
-  streak: number
-  longestStreak: number
-  totalCheckIns: number
-  checkIns: CheckInEntry[]
-  todayCheckedIn: boolean
-  todayAnswers: Record<string, number>
-  friendActivities: FriendActivity[]
-  challenges: Challenge[]
-  badges: Badge[]
-  activeCheckInStep: number
-}
+type AuthStatus = 'loading' | 'unauthenticated' | 'authenticated'
 
 interface AppContextType {
-  state: AppState
+  state: AppState | null
+  status: AuthStatus
+  authError: string | null
+  authPending: boolean
+  login: (email: string, password: string) => Promise<boolean>
+  signup: (name: string, email: string, password: string) => Promise<boolean>
+  logout: () => void
   completeCheckIn: (answers: Record<string, number>, xp: number) => void
   likeActivity: (activityId: string) => void
   joinChallenge: (challengeId: string) => void
@@ -37,137 +22,176 @@ interface AppContextType {
   clearPendingQuestion: () => void
 }
 
-const defaultState: AppState = {
-  userName: 'You',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=85&auto=format&fit=crop',
-  level: 5,
-  xp: 340,
-  xpToNextLevel: 500,
-  streak: 7,
-  longestStreak: 12,
-  totalCheckIns: 23,
-  checkIns: [],
-  todayCheckedIn: false,
-  todayAnswers: {},
-  friendActivities: FRIEND_ACTIVITIES,
-  challenges: CHALLENGES,
-  badges: BADGES,
-  activeCheckInStep: 0,
-}
-
-const STORAGE_KEY = 'wellness_app_state'
-
-function loadState(): AppState {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      // Check if today's check-in is actually from today
-      const today = new Date().toDateString()
-      if (parsed.lastCheckInDate !== today) {
-        parsed.todayCheckedIn = false
-        parsed.todayAnswers = {}
-      }
-      return { ...defaultState, ...parsed }
-    }
-  } catch {
-    // ignore
-  }
-  return defaultState
-}
-
 const AppContext = createContext<AppContextType | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>(loadState)
+  const [state, setState] = useState<AppState | null>(null)
+  const [status, setStatus] = useState<AuthStatus>(() => (getToken() ? 'loading' : 'unauthenticated'))
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [authPending, setAuthPending] = useState(false)
   const [pendingCheckInQuestion, setPendingCheckInQuestion] = useState<string | null>(null)
 
+  // On mount, if we have a token, hydrate state from the backend.
   useEffect(() => {
-    const toSave = {
-      ...state,
-      lastCheckInDate: new Date().toDateString(),
+    if (!getToken()) return
+    let cancelled = false
+    api
+      .me()
+      .then((res) => {
+        if (cancelled) return
+        setState(res.state)
+        setStatus('authenticated')
+      })
+      .catch(() => {
+        if (cancelled) return
+        clearToken()
+        setState(null)
+        setStatus('unauthenticated')
+      })
+    return () => {
+      cancelled = true
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
-  }, [state])
+  }, [])
 
-  function completeCheckIn(answers: Record<string, number>, xp: number) {
-    const entry: CheckInEntry = {
-      date: new Date().toDateString(),
-      answers,
-      xpEarned: xp,
-      completedAt: new Date().toISOString(),
-    }
-
-    setState(prev => {
-      const newXp = prev.xp + xp
-      const newLevel = newXp >= prev.xpToNextLevel
-        ? prev.level + 1
-        : prev.level
-      const finalXp = newXp >= prev.xpToNextLevel
-        ? newXp - prev.xpToNextLevel
-        : newXp
-      const newXpToNext = newLevel > prev.level ? prev.xpToNextLevel + 100 : prev.xpToNextLevel
-
-      return {
-        ...prev,
-        todayCheckedIn: true,
-        todayAnswers: answers,
-        xp: finalXp,
-        level: newLevel,
-        xpToNextLevel: newXpToNext,
-        streak: prev.streak + 1,
-        longestStreak: Math.max(prev.longestStreak, prev.streak + 1),
-        totalCheckIns: prev.totalCheckIns + 1,
-        checkIns: [...prev.checkIns, entry],
+  const runAuth = useCallback(
+    async (fn: () => Promise<{ token: string; state: AppState }>): Promise<boolean> => {
+      setAuthPending(true)
+      setAuthError(null)
+      try {
+        const { token, state: nextState } = await fn()
+        setToken(token)
+        setState(nextState)
+        setStatus('authenticated')
+        return true
+      } catch (err) {
+        setAuthError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
+        return false
+      } finally {
+        setAuthPending(false)
       }
-    })
-  }
+    },
+    [],
+  )
 
-  function likeActivity(activityId: string) {
-    setState(prev => ({
-      ...prev,
-      friendActivities: prev.friendActivities.map(a =>
-        a.id === activityId
-          ? { ...a, liked: !a.liked, likes: a.liked ? a.likes - 1 : a.likes + 1 }
-          : a
-      ),
-    }))
-  }
+  const login = useCallback(
+    (email: string, password: string) => runAuth(() => api.login(email, password)),
+    [runAuth],
+  )
 
-  function joinChallenge(challengeId: string) {
-    setState(prev => ({
-      ...prev,
-      challenges: prev.challenges.map(c =>
-        c.id === challengeId ? { ...c, joined: !c.joined } : c
-      ),
-    }))
-  }
+  const signup = useCallback(
+    (name: string, email: string, password: string) => runAuth(() => api.signup(name, email, password)),
+    [runAuth],
+  )
 
-  function tryItYourself(questionKey: string) {
-    setPendingCheckInQuestion(questionKey)
-  }
-
-  function clearPendingQuestion() {
+  const logout = useCallback(() => {
+    clearToken()
+    setState(null)
+    setStatus('unauthenticated')
+    setAuthError(null)
     setPendingCheckInQuestion(null)
-  }
+  }, [])
+
+  const completeCheckIn = useCallback((answers: Record<string, number>, _xp: number) => {
+    // XP/level/streak are computed authoritatively on the server.
+    api
+      .submitCheckIn(answers)
+      .then((res) => setState(res.state))
+      .catch(() => {
+        // e.g. already checked in today — resync from server.
+        api.me().then((res) => setState(res.state)).catch(() => {})
+      })
+  }, [])
+
+  const likeActivity = useCallback((activityId: string) => {
+    // Optimistic toggle for snappy UI, reconciled with the server response.
+    setState((prev) =>
+      prev
+        ? {
+            ...prev,
+            friendActivities: prev.friendActivities.map((a) =>
+              a.id === activityId
+                ? { ...a, liked: !a.liked, likes: a.liked ? a.likes - 1 : a.likes + 1 }
+                : a,
+            ),
+          }
+        : prev,
+    )
+    api
+      .likeActivity(activityId)
+      .then((res) => setState(res.state))
+      .catch(() => {
+        api.me().then((res) => setState(res.state)).catch(() => {})
+      })
+  }, [])
+
+  const joinChallenge = useCallback((challengeId: string) => {
+    setState((prev) =>
+      prev
+        ? {
+            ...prev,
+            challenges: prev.challenges.map((c) =>
+              c.id === challengeId
+                ? {
+                    ...c,
+                    joined: !c.joined,
+                    participantCount: c.joined ? c.participantCount - 1 : c.participantCount + 1,
+                  }
+                : c,
+            ),
+          }
+        : prev,
+    )
+    api
+      .joinChallenge(challengeId)
+      .then((res) => setState(res.state))
+      .catch(() => {
+        api.me().then((res) => setState(res.state)).catch(() => {})
+      })
+  }, [])
+
+  const tryItYourself = useCallback((questionKey: string) => setPendingCheckInQuestion(questionKey), [])
+  const clearPendingQuestion = useCallback(() => setPendingCheckInQuestion(null), [])
 
   return (
-    <AppContext.Provider value={{
-      state,
-      completeCheckIn,
-      likeActivity,
-      joinChallenge,
-      tryItYourself,
-      pendingCheckInQuestion,
-      clearPendingQuestion,
-    }}>
+    <AppContext.Provider
+      value={{
+        state,
+        status,
+        authError,
+        authPending,
+        login,
+        signup,
+        logout,
+        completeCheckIn,
+        likeActivity,
+        joinChallenge,
+        tryItYourself,
+        pendingCheckInQuestion,
+        clearPendingQuestion,
+      }}
+    >
       {children}
     </AppContext.Provider>
   )
 }
 
-export function useApp() {
+function useCtx(): AppContextType {
   const ctx = useContext(AppContext)
   if (!ctx) throw new Error('useApp must be used within AppProvider')
   return ctx
+}
+
+/** For auth screens and the route gate — state may be null. */
+export function useAuth() {
+  return useCtx()
+}
+
+/**
+ * For pages rendered inside the authenticated tree, where state is guaranteed
+ * to be loaded. Narrows `state` to non-null.
+ */
+export function useApp(): AppContextType & { state: AppState } {
+  const ctx = useCtx()
+  if (!ctx.state) throw new Error('useApp used before app state was loaded')
+  return ctx as AppContextType & { state: AppState }
 }

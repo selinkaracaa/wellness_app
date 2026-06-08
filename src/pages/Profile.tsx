@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Trophy, Lock, Palette } from 'lucide-react'
+import { Trophy, Lock, Palette, LogOut } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { CHECK_IN_QUESTIONS } from '../data/mockData'
 import GlassCard from '../components/ui/GlassCard'
@@ -12,7 +12,7 @@ import { QuestionSymbol } from '../components/ui/OptionSymbol'
 import { wellnessScore } from '../utils/wellnessScore'
 
 export default function Profile() {
-  const { state } = useApp()
+  const { state, logout } = useApp()
   const xpPercent = Math.round((state.xp / state.xpToNextLevel) * 100)
   const earnedBadges = state.badges.filter((b) => b.earned)
   const unearnedBadges = state.badges.filter((b) => !b.earned)
@@ -150,6 +150,15 @@ export default function Profile() {
           <Palette size={16} />
           View brand guide
         </Link>
+
+        <button
+          type="button"
+          onClick={logout}
+          className="flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold text-muted tap-scale"
+        >
+          <LogOut size={16} />
+          Sign out
+        </button>
       </div>
     </div>
   )
