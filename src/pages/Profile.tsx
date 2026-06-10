@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { LogOut } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import PageHeader from '../components/ui/PageHeader'
 import UserAvatar from '../components/ui/UserAvatar'
@@ -8,7 +9,7 @@ import { categoryPillLabel } from '../design/categoryTags'
 import { GOALS } from '../data/habitPool'
 
 export default function Profile() {
-  const { state, resetExperience } = useApp()
+  const { state, resetExperience, logout } = useApp()
   const navigate = useNavigate()
   const [showWeekly, setShowWeekly] = useState(false)
 
@@ -17,6 +18,11 @@ export default function Profile() {
     if (window.location.search.includes('demo')) {
       window.history.replaceState({}, '', window.location.pathname)
     }
+    navigate('/onboarding')
+  }
+
+  function handleLogout() {
+    logout()
     navigate('/onboarding')
   }
   const metrics = state.coreMetrics
@@ -139,6 +145,15 @@ export default function Profile() {
             Start over
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="btn-ghost w-full py-3 text-sm tap-scale flex items-center justify-center gap-2"
+        >
+          <LogOut size={16} />
+          Log out
+        </button>
 
         <div className="text-center">
           <Link to="/fonts" className="text-xs font-semibold text-link tap-scale">

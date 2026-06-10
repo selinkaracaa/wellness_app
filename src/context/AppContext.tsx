@@ -76,6 +76,7 @@ interface AppContextType {
   pendingCheckInQuestion: string | null
   clearPendingQuestion: () => void
   loadDemo: () => void
+  logout: () => void
   resetExperience: () => void
 }
 
@@ -440,6 +441,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState(merged)
   }
 
+  /**
+   * End the session: drop the auth token and clear locally-cached state so the
+   * next user starts clean and lands back on the auth screen (onboardingComplete
+   * goes false → OnboardingGuard redirects to /onboarding).
+   */
+  function logout() {
+    clearToken()
+    localStorage.removeItem(STORAGE_KEY)
+    setState({ ...defaultState, weekStartDate: getWeekStart() })
+    setPendingCheckInQuestion(null)
+  }
+
   function resetExperience() {
     localStorage.removeItem(STORAGE_KEY)
     clearToken()
@@ -464,6 +477,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         pendingCheckInQuestion,
         clearPendingQuestion,
         loadDemo,
+        logout,
         resetExperience,
       }}
     >
