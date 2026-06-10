@@ -14,11 +14,11 @@ export default function DailyCheckInCard({ totalXp = 95 }: DailyCheckInCardProps
     <GlassCard className="card-tint-lavender p-5 relative overflow-hidden">
       <div className="absolute inset-0 glass-frosted pointer-events-none opacity-60" aria-hidden />
       <div className="relative z-10 pr-24">
-        <p className="text-sm font-bold text-ink/80">Daily check-in</p>
-        <h2 className="text-xl font-bold text-ink mt-1 leading-snug">How are you today?</h2>
+        <p className="text-sm font-bold text-ink/80">Evening self-assessment</p>
+        <h2 className="text-xl font-bold text-ink mt-1 leading-snug">Rate yourself 1–5</h2>
         <div className="flex gap-6 mt-4 text-xs font-semibold text-ink/70">
           <span>~2 min</span>
-          <span>Up to {totalXp} XP</span>
+          <span>Up to {totalXp} XP · any score saves streak</span>
         </div>
       </div>
       <DecorativeOrb size={96} className="absolute -right-2 top-4 opacity-95 z-[1]" />

@@ -1,99 +1,142 @@
-import { ChevronRight, Trophy } from 'lucide-react'
+import { useState } from 'react'
+import { TrendingUp, TrendingDown, Minus, Bell } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import GlassCard from '../components/ui/GlassCard'
-import ChallengeIcon from '../components/ui/ChallengeIcon'
+import PageHeader from '../components/ui/PageHeader'
 import UserAvatar from '../components/ui/UserAvatar'
+import { FRIENDS } from '../data/mockData'
 
-const DISCOVER_TINTS = ['card-tint-lavender', 'card-tint-mint', 'card-tint-sand', 'card-tint-white'] as const
+const TREND = { up: TrendingUp, down: TrendingDown, same: Minus }
+const TREND_COLOR = { up: 'text-sage', down: 'text-red-400/80', same: 'text-muted' }
 
 export default function Challenges() {
-  const { state, joinChallenge } = useApp()
-  const activeChalls = state.challenges.filter((c) => c.joined)
-  const availableChalls = state.challenges.filter((c) => !c.joined)
+  const { state, nudgeMember } = useApp()
+  const [nudged, setNudged] = useState<Set<string>>(new Set())
+  const activeCycle = state.cycles.find((c) => c.id === state.activeCycleId)
+  const members =
+    activeCycle?.memberIds
+      .filter((id) => id !== 'you')
+      .map((id) => FRIENDS.find((f) => f.id === id))
+      .filter(Boolean) ?? []
+
+  const podium = state.cycleLeaderboard.slice(0, 3)
+  const rest = state.cycleLeaderboard.slice(3)
+
+  function handleNudge(friendId: string) {
+    nudgeMember(friendId)
+    setNudged((prev) => new Set(prev).add(friendId))
+  }
 
   return (
-    <div className="min-h-screen page-canvas pb-32">
-      <div className="px-5 pt-14">
-        <h1 className="text-[1.65rem] font-bold text-ink leading-tight">Challenges</h1>
-        <p className="text-muted font-medium mt-1">Shared goals with friends</p>
-      </div>
+    <div className="min-h-screen page-canvas pb-36">
+      <PageHeader
+        kicker="Team competition"
+        title="Cycle rankings"
+        subtitle="Power scores reflect logging consistency across your entire cycle — not individual performance."
+      />
 
-      <div className="px-5 mt-6 space-y-6">
-        <GlassCard className="gradient-hero-purple p-5 flex items-center justify-between text-white">
-          <div>
-            <p className="label-caps text-white/75">This week</p>
-            <p className="text-2xl font-bold mt-1 flex items-center gap-2">
-              <Trophy size={22} fill="currentColor" />
-              Rank #3
+      <div className="px-5 space-y-8">
+        {activeCycle && (
+          <div className="card-premium rounded-[1.5rem] p-6">
+            <p className="label-caps">Active cycle</p>
+            <p className="font-display text-2xl text-ink mt-2">{activeCycle.name}</p>
+            <p className="font-display text-5xl text-ink mt-4 tabular-nums leading-none">
+              {activeCycle.powerScore.toLocaleString()}
             </p>
+            <p className="text-xs text-muted mt-3">Global rank #{activeCycle.globalRank}</p>
           </div>
-          <ChevronRight className="text-white/70" size={20} />
-        </GlassCard>
-
-        {activeChalls.length > 0 && (
-          <section>
-            <p className="text-lg font-bold text-ink mb-3">Active</p>
-            <div className="space-y-4">
-              {activeChalls.map((c, i) => (
-                <GlassCard key={c.id} className={`${i % 2 === 0 ? 'card-tint-peach' : 'card-tint-sage'} p-5`}>
-                  <div className="flex gap-4">
-                    <ChallengeIcon type={c.type} size="lg" />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-bold text-ink">{c.title}</h3>
-                      <p className="text-xs text-muted mt-1 line-clamp-2 font-medium">{c.description}</p>
-                      <div className="mt-4 h-2 rounded-full bg-white/70 overflow-hidden">
-                        <div className="h-full gradient-xp rounded-full" style={{ width: `${c.progress}%` }} />
-                      </div>
-                      <div className="flex justify-between mt-2 text-xs font-semibold text-muted">
-                        <span>{c.progress}%</span>
-                        <span>{c.daysLeft} days left</span>
-                      </div>
-                      {c.participants.length > 0 && (
-                        <div className="flex items-center gap-1 mt-3">
-                          {c.participants.slice(0, 3).map((p) => (
-                            <UserAvatar key={p.id} avatar={p.avatar} friendId={p.id} name={p.name} size="sm" className="!w-7 !h-7 -ml-1 first:ml-0 ring-2 ring-white" />
-                          ))}
-                          <span className="text-[10px] font-semibold text-muted ml-1">
-                            +{c.participantCount - c.participants.length} joined
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => joinChallenge(c.id)}
-                    className="text-xs font-semibold text-muted mt-4 underline underline-offset-2"
-                  >
-                    Leave
-                  </button>
-                </GlassCard>
-              ))}
-            </div>
-          </section>
         )}
 
-        <section>
-          <p className="text-lg font-bold text-ink mb-3">Discover</p>
-          <div className="space-y-4">
-            {availableChalls.map((c, i) => (
-              <GlassCard key={c.id} className={`${DISCOVER_TINTS[i % DISCOVER_TINTS.length]} p-5`}>
-                <div className="flex gap-4 items-center">
-                  <ChallengeIcon type={c.type} />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-bold text-ink">{c.title}</h3>
-                    <p className="text-xs text-muted mt-1 font-medium">
-                      {c.duration} days · {c.participantCount} joined
+        <div>
+          <p className="label-caps mb-4 px-1">Global podium</p>
+          <div className="grid grid-cols-3 gap-2 items-end">
+            {[podium[1], podium[0], podium[2]].map((entry, i) => {
+              if (!entry) return <div key={i} />
+              const heights = ['h-24', 'h-32', 'h-20']
+              return (
+                <div key={entry.cycleId} className={`flex flex-col items-center ${i === 1 ? '-mt-2' : ''}`}>
+                  <div
+                    className={`podium-card w-full ${heights[i]} rounded-t-2xl flex flex-col items-center justify-end pb-3 px-2 ${
+                      entry.isUserCycle ? 'ring-1 ring-sage/30' : ''
+                    }`}
+                  >
+                    <span className="font-display text-2xl text-ink">{entry.rank}</span>
+                    <p className="text-[10px] font-semibold text-ink text-center mt-1 leading-tight line-clamp-2">
+                      {entry.cycleName}
+                    </p>
+                    <p className="text-[10px] text-muted tabular-nums mt-1">
+                      {entry.powerScore.toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <button type="button" onClick={() => joinChallenge(c.id)} className="btn-lime w-full mt-4 py-3 text-sm">
-                  Join challenge
-                </button>
-              </GlassCard>
-            ))}
+              )
+            })}
           </div>
-        </section>
+        </div>
+
+        {members.length > 0 && (
+          <div>
+            <p className="label-caps mb-3 px-1">Nudge your team</p>
+            <div className="space-y-2">
+              {members.map(
+                (m) =>
+                  m && (
+                    <div key={m.id} className="card-premium rounded-[1.25rem] p-4 flex items-center gap-3">
+                      <UserAvatar avatar={m.avatar} friendId={m.id} name={m.name} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-ink">{m.name}</p>
+                        <p className="text-[11px] text-muted">{m.streak} day awareness streak</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleNudge(m.id)}
+                        disabled={nudged.has(m.id)}
+                        className={`flex items-center gap-1.5 text-[11px] font-bold px-3.5 py-2 rounded-full transition-all tap-scale ${
+                          nudged.has(m.id) ? 'bg-sage-light text-sage' : 'bg-ink text-white'
+                        }`}
+                      >
+                        <Bell size={12} strokeWidth={2} />
+                        {nudged.has(m.id) ? 'Sent' : 'Nudge'}
+                      </button>
+                    </div>
+                  )
+              )}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <p className="label-caps mb-3 px-1">Full ladder</p>
+          <div className="space-y-2">
+            {rest.map((entry) => {
+              const Icon = TREND[entry.trend]
+              return (
+                <div
+                  key={entry.cycleId}
+                  className={`rounded-[1.25rem] p-4 flex items-center gap-4 ${
+                    entry.isUserCycle ? 'card-premium ring-1 ring-sage/25' : 'card-premium'
+                  }`}
+                >
+                  <span className="font-display text-xl text-muted w-7 tabular-nums">{entry.rank}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink truncate">
+                      {entry.cycleName}
+                      {entry.isUserCycle && (
+                        <span className="ml-2 text-[9px] font-bold text-sage uppercase tracking-wider">Yours</span>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-muted">{entry.memberCount} members</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-ink tabular-nums">
+                      {entry.powerScore.toLocaleString()}
+                    </span>
+                    <Icon size={14} className={TREND_COLOR[entry.trend]} strokeWidth={2} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </div>
   )

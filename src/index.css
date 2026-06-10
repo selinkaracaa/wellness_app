@@ -1,5 +1,5 @@
-/* Bloom design tokens — see docs/BRAND.md */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+/* Cycles design tokens — see docs/BRAND.md */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=Sora:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -36,6 +36,8 @@
     font-family: 'DM Sans', -apple-system, sans-serif;
     background-color: var(--color-cream);
     color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -44,17 +46,47 @@
     padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 
+  .font-body {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+  }
+
+  .font-display {
+    font-family: 'Sora', 'DM Sans', -apple-system, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  .font-title-sans {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  .font-title-serif {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
   .page-canvas {
-    background-color: var(--color-cream);
+    background-color: #f8f7f4;
     background-image:
-      radial-gradient(ellipse 70% 45% at 50% 0%, rgba(255, 180, 140, 0.35), transparent 55%),
-      radial-gradient(ellipse 50% 40% at 90% 20%, rgba(200, 190, 255, 0.25), transparent),
-      radial-gradient(ellipse 40% 35% at 10% 60%, rgba(232, 249, 212, 0.2), transparent);
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 220, 190, 0.22), transparent 60%),
+      radial-gradient(ellipse 45% 35% at 100% 15%, rgba(200, 190, 255, 0.12), transparent),
+      radial-gradient(ellipse 35% 30% at 0% 80%, rgba(143, 168, 138, 0.08), transparent);
   }
 
   .card-float {
-    border-radius: 1.5rem;
-    box-shadow: 0 12px 40px rgba(18, 18, 18, 0.08), 0 2px 8px rgba(18, 18, 18, 0.04);
+    border-radius: 1.25rem;
+    box-shadow: 0 1px 2px rgba(18, 18, 18, 0.04), 0 8px 24px rgba(18, 18, 18, 0.06);
+  }
+
+  .card-premium {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(18, 18, 18, 0.06);
+    box-shadow: 0 1px 2px rgba(18, 18, 18, 0.03), 0 12px 32px rgba(18, 18, 18, 0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   .card-tint-lavender {
@@ -202,5 +234,112 @@
     font-size: 0.875rem;
     border-radius: 9999px;
     border: 1px solid rgba(18, 18, 18, 0.08);
+  }
+
+  .streak-hero {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(18, 18, 18, 0.06);
+    box-shadow:
+      0 0 calc(12px + 32px * var(--glow-level, 0)) rgba(200, 241, 53, calc(0.08 + 0.28 * var(--glow-level, 0))),
+      0 16px 40px rgba(18, 18, 18, 0.05);
+  }
+
+  .streak-hero-shine {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, transparent 50%);
+  }
+
+  .streak-ring {
+    background: conic-gradient(
+      var(--color-sage) calc(var(--ring-fill, 0) * 360deg),
+      var(--color-sage-light) 0
+    );
+    padding: 3px;
+  }
+
+  .streak-ring > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: white;
+  }
+
+  .metric-fill {
+    background: linear-gradient(90deg, var(--color-sage) 0%, #6b8f66 100%);
+  }
+
+  .metric-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 20px;
+    background: transparent;
+    outline: none;
+  }
+
+  .metric-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-ink);
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 10px rgba(18, 18, 18, 0.18);
+    margin-top: -8px;
+  }
+
+  .metric-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-ink);
+    border: 3px solid white;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(18, 18, 18, 0.18);
+  }
+
+  .feed-blur-overlay {
+    background: linear-gradient(
+      180deg,
+      rgba(248, 247, 244, 0) 0%,
+      rgba(248, 247, 244, 0.85) 70%,
+      rgba(248, 247, 244, 0.95) 100%
+    );
+    backdrop-filter: blur(24px) saturate(1.1);
+    -webkit-backdrop-filter: blur(24px) saturate(1.1);
+  }
+
+  .challenge-banner {
+    background: linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 48px rgba(18, 18, 18, 0.18);
+  }
+
+  .podium-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(18, 18, 18, 0.06);
+  }
+
+  .heatmap-cell {
+    border-radius: 3px;
+    transition: transform 0.15s ease;
+  }
+
+  .heatmap-cell[data-logged='true'] {
+    background: var(--color-ink);
+  }
+
+  .heatmap-cell[data-logged='false'] {
+    background: rgba(143, 168, 138, 0.18);
+  }
+
+  .nav-glass {
+    background: rgba(18, 18, 18, 0.92);
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(18, 18, 18, 0.24);
   }
 }

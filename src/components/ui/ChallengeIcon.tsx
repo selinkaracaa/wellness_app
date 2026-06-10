@@ -1,8 +1,9 @@
 import { QuestionSymbol } from './OptionSymbol'
-import type { Challenge } from '../../data/mockData'
+
+type ChallengeType = 'water' | 'steps' | 'sleep' | 'screen' | 'mindful' | 'nutrition'
 
 /** Maps challenge types to check-in category symbols */
-const TYPE_TO_CATEGORY: Record<Challenge['type'], string> = {
+const TYPE_TO_CATEGORY: Record<ChallengeType, string> = {
   water: 'water',
   steps: 'activity',
   sleep: 'sleep',
@@ -11,7 +12,7 @@ const TYPE_TO_CATEGORY: Record<Challenge['type'], string> = {
   nutrition: 'nutrition',
 }
 
-const TYPE_STYLES: Record<Challenge['type'], string> = {
+const TYPE_STYLES: Record<ChallengeType, string> = {
   water: 'bg-sky',
   steps: 'bg-peach',
   sleep: 'bg-lavender',
@@ -21,7 +22,7 @@ const TYPE_STYLES: Record<Challenge['type'], string> = {
 }
 
 interface ChallengeIconProps {
-  type: Challenge['type']
+  type: ChallengeType
   size?: 'md' | 'lg'
   className?: string
 }

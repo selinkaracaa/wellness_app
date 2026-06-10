@@ -6,6 +6,12 @@ export const CATEGORY_PILL_LABELS: Record<string, string> = {
   sleep: 'Sleep',
   screen: 'Focus',
   mood: 'Mood',
+  steps: 'Steps',
+  protein: 'Protein',
+  greens: 'Greens',
+  sports: 'Movement',
+  mindfulness: 'Mindful',
+  recovery: 'Recovery',
 }
 
 export function categoryPillLabel(key: string): string {

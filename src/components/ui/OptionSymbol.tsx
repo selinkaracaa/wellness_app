@@ -109,6 +109,12 @@ const renderers: Record<string, (v: number, px: number) => ReactNode> = {
   sleep: (v, px) => <SleepSymbol value={v} px={px} />,
   screen: (v, px) => <ScreenSymbol value={v} px={px} />,
   mood: (v, px) => <MoodSymbol value={v} px={px} />,
+  steps: (v, px) => <ActivitySymbol value={v} px={px} />,
+  protein: (v, px) => <NutritionSymbol value={v} px={px} />,
+  greens: (v, px) => <NutritionSymbol value={v} px={px} />,
+  sports: (v, px) => <ActivitySymbol value={v} px={px} />,
+  mindfulness: (v, px) => <MoodSymbol value={v} px={px} />,
+  recovery: (v, px) => <SleepSymbol value={v} px={px} />,
 }
 
 export default function OptionSymbol({ questionKey, value, size = 'md', className = '', bare }: OptionSymbolProps) {

@@ -4,7 +4,8 @@ import GlassCard from '../components/ui/GlassCard'
 import DecorativeOrb from '../components/ui/DecorativeOrb'
 import WellnessScoreRing from '../components/ui/WellnessScoreRing'
 import { QuestionSymbol } from '../components/ui/OptionSymbol'
-import { CHECK_IN_QUESTIONS, BADGES } from '../data/mockData'
+import { BADGES } from '../data/mockData'
+import { HABIT_POOL } from '../data/habitPool'
 import BadgeIcon from '../components/ui/BadgeIcon'
 
 const SWATCHES = [
@@ -38,7 +39,7 @@ export default function BrandPreview() {
           <ChevronLeft size={18} />
           Back to app
         </Link>
-        <h1 className="text-2xl font-bold text-ink">Bloom brand</h1>
+        <h1 className="text-2xl font-bold text-ink">Cycles brand</h1>
         <p className="text-sm text-muted mt-1 font-medium">Living style guide — scroll to explore</p>
       </header>
 
@@ -249,7 +250,7 @@ export default function BrandPreview() {
         <section>
           <p className="label-caps mb-3">Category symbols</p>
           <div className="flex gap-3 flex-wrap">
-            {CHECK_IN_QUESTIONS.map((q) => (
+            {HABIT_POOL.slice(0, 6).map((q) => (
               <div key={q.key} className="flex flex-col items-center gap-1">
                 <QuestionSymbol questionKey={q.key} size="md" />
                 <span className="text-[9px] font-semibold text-muted capitalize">{q.key}</span>
