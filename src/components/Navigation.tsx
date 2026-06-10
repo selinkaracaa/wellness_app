@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { SlidersHorizontal, Users, Trophy, LineChart } from 'lucide-react'
+import { Home, Users, Trophy, User } from 'lucide-react'
 
 const tabs = [
-  { to: '/', icon: SlidersHorizontal, label: 'Today' },
+  { to: '/', icon: Home, label: 'Home' },
   { to: '/cycles', icon: Users, label: 'Cycles' },
   { to: '/leaderboards', icon: Trophy, label: 'Ranks' },
-  { to: '/profile', icon: LineChart, label: 'Insights' },
+  { to: '/profile', icon: User, label: 'You' },
 ]
 
 export default function Navigation() {

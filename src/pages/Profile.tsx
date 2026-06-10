@@ -5,6 +5,7 @@ import PageHeader from '../components/ui/PageHeader'
 import UserAvatar from '../components/ui/UserAvatar'
 import WeeklyModal from '../components/WeeklyModal'
 import { categoryPillLabel } from '../design/categoryTags'
+import { GOALS } from '../data/habitPool'
 
 export default function Profile() {
   const { state, resetExperience } = useApp()
@@ -36,12 +37,12 @@ export default function Profile() {
   return (
     <div className="min-h-screen page-canvas pb-36">
       <PageHeader
-        kicker="Longitudinal view"
-        title="Insights & evolution"
-        subtitle="Consistency over time. Scores are secondary to the act of showing up."
+        kicker="Your profile"
+        title="Personal"
+        subtitle="Who you are here — your goals, what you track, and your history."
       />
 
-      <div className="px-5 -mt-2 flex items-center gap-4 mb-8">
+      <div className="px-5 -mt-2 flex items-center gap-4 mb-6">
         <UserAvatar avatar={state.avatar} name={state.userName} size="lg" />
         <div>
           <p className="text-sm font-semibold text-ink">{state.userName}</p>
@@ -51,28 +52,38 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="px-5 space-y-8">
-        <div>
-          <p className="label-caps mb-3">Consistency map</p>
-          <div className="card-premium rounded-[1.5rem] p-5">
-            <div
-              className="grid grid-flow-col grid-rows-7 gap-[3px]"
-              style={{ gridTemplateColumns: `repeat(${weeks}, 1fr)` }}
-            >
-              {cells.map((cell, i) => (
-                <div
-                  key={i}
-                  className="heatmap-cell aspect-square"
-                  data-logged={cell.logged}
-                  title={cell.date}
-                />
-              ))}
-            </div>
-            <p className="text-[11px] text-muted mt-4 leading-relaxed">
-              Each cell is a day you logged — regardless of whether you rated 1 or 5.
-            </p>
+      <div className="px-5 grid grid-cols-3 gap-3 mb-8">
+        {[
+          { v: state.streak, l: 'Streak' },
+          { v: state.longestStreak, l: 'Best' },
+          { v: state.totalCheckIns, l: 'Logs' },
+        ].map(({ v, l }) => (
+          <div key={l} className="card-premium rounded-[1.25rem] p-4 text-center">
+            <p className="font-display text-3xl text-ink tabular-nums">{v}</p>
+            <p className="text-[10px] font-semibold text-muted mt-1 uppercase tracking-wider">{l}</p>
           </div>
-        </div>
+        ))}
+      </div>
+
+      <div className="px-5 space-y-8">
+        {state.goals.length > 0 && (
+          <div>
+            <p className="label-caps mb-3">Your goals</p>
+            <div className="flex flex-wrap gap-2">
+              {state.goals.map((g) => {
+                const goal = GOALS.find((x) => x.id === g)
+                return (
+                  <span
+                    key={g}
+                    className="px-4 py-2 rounded-full bg-ink text-white text-xs font-semibold tracking-wide"
+                  >
+                    {goal?.label ?? g}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {metrics.length > 0 && (
           <div>
@@ -97,6 +108,28 @@ export default function Profile() {
           </div>
         )}
 
+        <div>
+          <p className="label-caps mb-3">Your history</p>
+          <div className="card-premium rounded-[1.5rem] p-5">
+            <div
+              className="grid grid-flow-col grid-rows-7 gap-[3px]"
+              style={{ gridTemplateColumns: `repeat(${weeks}, 1fr)` }}
+            >
+              {cells.map((cell, i) => (
+                <div
+                  key={i}
+                  className="heatmap-cell aspect-square"
+                  data-logged={cell.logged}
+                  title={cell.date}
+                />
+              ))}
+            </div>
+            <p className="text-[11px] text-muted mt-4 leading-relaxed">
+              Each cell is a day you logged — regardless of whether you rated 1 or 5.
+            </p>
+          </div>
+        </div>
+
         <div className="card-premium rounded-[1.25rem] p-4 space-y-3">
           <p className="text-sm font-semibold text-ink">Start fresh</p>
           <p className="text-xs text-muted leading-relaxed">
@@ -111,19 +144,6 @@ export default function Profile() {
           <Link to="/fonts" className="text-xs font-semibold text-link tap-scale">
             Compare title fonts
           </Link>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { v: state.streak, l: 'Streak' },
-            { v: state.longestStreak, l: 'Best' },
-            { v: state.totalCheckIns, l: 'Logs' },
-          ].map(({ v, l }) => (
-            <div key={l} className="card-premium rounded-[1.25rem] p-4 text-center">
-              <p className="font-display text-3xl text-ink tabular-nums">{v}</p>
-              <p className="text-[10px] font-semibold text-muted mt-1 uppercase tracking-wider">{l}</p>
-            </div>
-          ))}
         </div>
       </div>
 
