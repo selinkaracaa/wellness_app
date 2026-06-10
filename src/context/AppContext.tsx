@@ -66,6 +66,7 @@ interface AppContextType {
   signup: (input: SignupInput) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   completeCheckIn: (answers: Record<string, number>, xp: number) => void
+  updateTodayCheckIn: (answers: Record<string, number>) => void
   completeOnboarding: (goals: GoalId[], userName: string) => void
   completeWeeklyRecalibration: (subjectiveScore: number) => void
   submitPhotoChallenge: (imageDataUrl: string) => Promise<{ verified: boolean; message: string }>
@@ -348,6 +349,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  /**
+   * Edit the values logged for today without re-counting the check-in. Streak,
+   * XP, and total stay put (today already counted) — only the answers change,
+   * both in `todayAnswers` and in today's history entry.
+   */
+  function updateTodayCheckIn(answers: Record<string, number>) {
+    const todayKey = new Date().toDateString()
+    setState((prev) => ({
+      ...prev,
+      todayAnswers: answers,
+      checkIns: prev.checkIns.map((c) => (c.date === todayKey ? { ...c, answers } : c)),
+    }))
+  }
+
   function completeWeeklyRecalibration(subjectiveScore: number) {
     setState((prev) => {
       const result = recalibrateMetrics(prev.coreMetrics, prev.checkIns, subjectiveScore, prev.goals)
@@ -467,6 +482,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         signup,
         login,
         completeCheckIn,
+        updateTodayCheckIn,
         completeOnboarding,
         completeWeeklyRecalibration,
         submitPhotoChallenge,

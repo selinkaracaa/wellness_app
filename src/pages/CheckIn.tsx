@@ -5,14 +5,14 @@ import { X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import StreakHero from '../components/ui/StreakHero'
 import MetricSlider from '../components/ui/MetricSlider'
-import DecorativeOrb from '../components/ui/DecorativeOrb'
 
 export default function CheckIn() {
-  const { state, completeCheckIn, pendingCheckInQuestion, clearPendingQuestion } = useApp()
+  const { state, completeCheckIn, updateTodayCheckIn, pendingCheckInQuestion, clearPendingQuestion } = useApp()
   const navigate = useNavigate()
   const metrics = state.coreMetrics
   const [answers, setAnswers] = useState<Record<string, number>>(state.todayAnswers)
   const [justCompleted, setJustCompleted] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
     if (!state.onboardingComplete) navigate('/onboarding')
@@ -51,16 +51,102 @@ export default function CheckIn() {
   if (metrics.length === 0) return null
 
   if (state.todayCheckedIn && !justCompleted) {
+    const editFilled = metrics.every((m) => answers[m.key] != null)
+    const dirty = metrics.some((m) => answers[m.key] !== state.todayAnswers[m.key])
+
+    const handleSave = () => {
+      updateTodayCheckIn(answers)
+      setIsEditing(false)
+    }
+    const handleCancel = () => {
+      setAnswers(state.todayAnswers)
+      setIsEditing(false)
+    }
+
     return (
-      <div className="min-h-screen page-canvas flex flex-col items-center justify-center px-6 pb-32">
-        <DecorativeOrb size={100} className="mb-6" />
-        <p className="font-display text-3xl text-ink text-center tracking-tight">Already complete</p>
-        <p className="text-muted text-sm mt-3 text-center max-w-xs leading-relaxed">
-          Today&apos;s self-assessment is done. Your streak is protected — see you tomorrow.
-        </p>
-        <button onClick={() => navigate('/')} className="btn-dark mt-10 px-10 py-3.5 text-sm tap-scale">
-          Back to insights
-        </button>
+      <div className="min-h-screen page-canvas pb-36">
+        <header className="px-5 pt-12 pb-1">
+          <div className="flex items-center justify-between mb-8">
+            <span className="font-display text-[1.35rem] tracking-tight text-ink">Cycles</span>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="w-9 h-9 rounded-full card-premium flex items-center justify-center tap-scale"
+              aria-label="Close check-in"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <p className="label-caps mb-2">Daily ritual</p>
+          <h1 className="font-display text-[1.75rem] leading-[1.15] text-ink tracking-tight">
+            {isEditing ? 'Edit your check-in' : 'Your check-in today'}
+          </h1>
+          <p className="text-sm text-muted mt-2 leading-relaxed max-w-[28ch]">
+            {isEditing
+              ? 'Adjust any rating, then save your changes.'
+              : 'What you logged today. Tap edit to adjust any rating.'}
+          </p>
+        </header>
+
+        <div className="mt-2">
+          <StreakHero
+            streak={state.streak}
+            glowLevel={1}
+            progress={metrics.length}
+            total={metrics.length}
+            status={isEditing ? 'Editing your log' : 'Streak protected for today'}
+          />
+        </div>
+
+        <div className="px-5 mt-8 space-y-4">
+          {metrics.map((m, i) => (
+            <MetricSlider
+              key={m.key}
+              metricKey={m.key}
+              label={m.label}
+              index={i}
+              total={metrics.length}
+              value={answers[m.key] ?? null}
+              onChange={(v) => setAnswers((prev) => ({ ...prev, [m.key]: v }))}
+              readOnly={!isEditing}
+            />
+          ))}
+        </div>
+
+        <div className="px-5 mt-8 space-y-3">
+          {isEditing ? (
+            <>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!editFilled || !dirty}
+                className="btn-dark w-full py-3.5 text-sm tap-scale disabled:opacity-40"
+              >
+                Save changes
+              </button>
+              <button type="button" onClick={handleCancel} className="btn-ghost w-full py-3 text-sm tap-scale">
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="btn-dark w-full py-3.5 text-sm tap-scale"
+              >
+                Edit answers
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="btn-ghost w-full py-3 text-sm tap-scale"
+              >
+                Back to insights
+              </button>
+            </>
+          )}
+        </div>
       </div>
     )
   }
