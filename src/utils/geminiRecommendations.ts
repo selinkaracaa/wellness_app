@@ -78,15 +78,20 @@ function buildPrompt(input: RecommendationInput, summaries: MetricSummary[]): st
     .join('\n')
 
   return [
-    'You are a warm, concise wellness coach inside "Cycles", a daily self-check-in app.',
-    'The app\'s core philosophy is "awareness over perfection": consistently showing up matters more than perfect scores. Never shame the user.',
+    'You are a candid but supportive wellness coach inside "Cycles", a daily self-check-in app.',
+    'Philosophy: "awareness over perfection" — showing up matters more than perfect scores. Be encouraging overall, but be HONEST and realistic; do not sugar-coat or cheerlead.',
     '',
-    `Write exactly 3 short, specific, encouraging recommendations for ${input.userName || 'the user'} for tomorrow, grounded in their actual data below.`,
+    `Write exactly 3 short, specific recommendations for ${input.userName || 'the user'} for tomorrow, grounded in their actual data below.`,
+    'Tone & balance:',
+    '- Aim for a realistic mix that is GENERALLY positive but NOT uniformly upbeat.',
+    '- At least one recommendation must candidly name a real weak spot, a declining trend, or something the user genuinely needs to work on — do not praise metrics the data shows are low.',
+    '- Roughly one recommendation should reinforce something that is genuinely going well (only if the data supports it).',
+    "- It's fine to be direct or mildly challenging when the data warrants it, but never harsh, shaming, or alarmist.",
     'Rules:',
     '- Each "title": at most 4 words, punchy.',
     '- Each "body": ONE sentence, at most 18 words, concrete and actionable.',
-    '- Reference real trends (e.g. a low or falling metric to nudge, or a strong one to reinforce).',
-    '- Tie advice to their stated goals where natural. Stay kind and non-judgmental.',
+    '- Ground every recommendation in the actual numbers/trends below; call out low averages or declines directly and matter-of-factly.',
+    '- Tie advice to their stated goals where natural.',
     '- Set "metricKey" to the single most relevant key from this list, or omit it: ' +
       summaries.map((s) => s.key).join(', ') + '.',
     '',
@@ -164,73 +169,90 @@ async function callGemini(input: RecommendationInput, summaries: MetricSummary[]
   return recs
 }
 
-/** Per-metric copy used when the API is unavailable. */
+/**
+ * Per-metric copy used when the API is unavailable. `low` is candid about a real
+ * shortfall; `high` reinforces a genuine strength.
+ */
 const FALLBACK_COPY: Record<string, { low: Recommendation; high: Recommendation }> = {
   steps: {
-    low: { title: 'Take a short walk', body: 'Your step counts dipped — a 10-minute walk tomorrow keeps momentum without pressure.', metricKey: 'steps' },
+    low: { title: 'Steps are low', body: 'Your step counts are genuinely low lately — commit to one real 15-minute walk tomorrow.', metricKey: 'steps' },
     high: { title: 'Keep stepping', body: 'Your movement is strong — protect it with one walk you already enjoy.', metricKey: 'steps' },
   },
   protein: {
-    low: { title: 'Anchor your protein', body: 'Add one protein source to your first meal to steady energy toward your goal.', metricKey: 'protein' },
+    low: { title: 'Protein falling short', body: 'Protein keeps missing your target — lock in a protein source at breakfast tomorrow.', metricKey: 'protein' },
     high: { title: 'Solid protein', body: 'Protein is on track — keep your easiest go-to meal in rotation.', metricKey: 'protein' },
   },
   greens: {
-    low: { title: 'One handful of greens', body: 'Greens have been light — add a single serving to any meal tomorrow.', metricKey: 'greens' },
+    low: { title: 'Greens are thin', body: 'Greens have been near zero — get at least one real serving in tomorrow.', metricKey: 'greens' },
     high: { title: 'Greens on point', body: 'Your veggie intake is great — repeat the meal that made it easy.', metricKey: 'greens' },
   },
   water: {
-    low: { title: 'Hydrate early', body: 'Hydration ran low — keep a glass at your desk and refill before lunch.', metricKey: 'water' },
+    low: { title: 'Underhydrated', body: "You're short on water most days — set a midday refill so it actually happens.", metricKey: 'water' },
     high: { title: 'Stay hydrated', body: 'Water intake looks healthy — keep your bottle within reach tomorrow.', metricKey: 'water' },
   },
   sports: {
-    low: { title: 'Move gently', body: 'No need for beast mode — a short stretch session still counts and rebuilds rhythm.', metricKey: 'sports' },
+    low: { title: 'Workouts stalled', body: 'Your sessions have dropped off — even a short workout beats another skipped day.', metricKey: 'sports' },
     high: { title: 'Great movement', body: 'Your sessions are strong — schedule tomorrow\'s now so it actually happens.', metricKey: 'sports' },
   },
   sleep: {
-    low: { title: 'Protect your sleep', body: 'Sleep has been rough — try a fixed wind-down time tonight, even 15 minutes earlier.', metricKey: 'sleep' },
+    low: { title: 'Sleep is suffering', body: "Sleep is consistently rough and it's costing you — protect a real bedtime tonight.", metricKey: 'sleep' },
     high: { title: 'Sleep is steady', body: 'Your rest is paying off — guard the bedtime that\'s working for you.', metricKey: 'sleep' },
   },
   mindfulness: {
-    low: { title: 'One calm minute', body: 'Take a single mindful minute tomorrow — awareness counts more than a long session.', metricKey: 'mindfulness' },
+    low: { title: 'Scattered week', body: "You've been scattered most days — carve out one honest mindful minute tomorrow.", metricKey: 'mindfulness' },
     high: { title: 'Stay present', body: 'Your mindfulness is strong — keep the small habit that grounds your day.', metricKey: 'mindfulness' },
   },
   screen: {
-    low: { title: 'Trim screen time', body: 'Screens crept up — pick one hour tomorrow to put the phone out of reach.', metricKey: 'screen' },
+    low: { title: 'Screen time up', body: 'Screen time is creeping up — pick one hour tomorrow with the phone out of reach.', metricKey: 'screen' },
     high: { title: 'Mindful with screens', body: 'You\'re managing screens well — keep your phone out of the bedroom.', metricKey: 'screen' },
   },
   mood: {
-    low: { title: 'Be kind to yourself', body: 'Mood\'s been low — one small thing you enjoy tomorrow matters more than productivity.', metricKey: 'mood' },
+    low: { title: 'Mood is low', body: "Your mood's been down for a while — name one thing that helps and actually do it.", metricKey: 'mood' },
     high: { title: 'Ride the good vibes', body: 'Your mood is bright — notice what fueled it and lean in tomorrow.', metricKey: 'mood' },
   },
   recovery: {
-    low: { title: 'Prioritize recovery', body: 'Recovery is lagging — add light mobility and an earlier night to bounce back.', metricKey: 'recovery' },
+    low: { title: 'Running on empty', body: "Recovery is lagging and it'll catch up with you — earlier night, lighter load tomorrow.", metricKey: 'recovery' },
     high: { title: 'Well recovered', body: 'Recovery looks great — you\'ve earned room for a slightly harder session.', metricKey: 'recovery' },
   },
 }
 
-/** Deterministic, offline recommendation generator used as a graceful fallback. */
+/**
+ * Deterministic, offline recommendation generator used as a graceful fallback.
+ * Aims for a realistic-but-generally-positive mix: lead with the weakest metric
+ * candidly, reinforce a genuine strength, and only add a second criticism when
+ * the data is clearly poor.
+ */
 export function heuristicRecommendations(input: RecommendationInput): Recommendation[] {
   const summaries = summarizeMetrics(input)
   const logged = summaries.filter((s) => s.avg != null)
   const recs: Recommendation[] = []
   const usedKeys = new Set<string>()
+  const byLowest = [...logged].sort((a, b) => (a.avg ?? 5) - (b.avg ?? 5))
+  const byHighest = [...logged].sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0))
 
-  // Target the two lowest-scoring tracked metrics first.
-  const lowest = [...logged].sort((a, b) => (a.avg ?? 5) - (b.avg ?? 5))
-  for (const s of lowest) {
-    if (recs.length >= 2) break
-    const copy = FALLBACK_COPY[s.key]
-    if (copy && !usedKeys.has(s.key)) {
-      recs.push((s.avg ?? 3) < 3.5 ? copy.low : copy.high)
-      usedKeys.add(s.key)
-    }
+  // 1) Candidly address the single weakest metric (praise it only if even the
+  //    weakest is genuinely strong — i.e. everything is going well).
+  const weakest = byLowest[0]
+  if (weakest && FALLBACK_COPY[weakest.key]) {
+    const copy = FALLBACK_COPY[weakest.key]
+    recs.push((weakest.avg ?? 3) < 3.5 ? copy.low : copy.high)
+    usedKeys.add(weakest.key)
   }
 
-  // Reinforce the strongest metric.
-  const strongest = [...logged].sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0))[0]
-  if (strongest && !usedKeys.has(strongest.key) && FALLBACK_COPY[strongest.key]) {
-    recs.push(FALLBACK_COPY[strongest.key].high)
+  // 2) Reinforce something genuinely going well (stay honest if it isn't).
+  const strongest = byHighest.find((s) => !usedKeys.has(s.key))
+  if (strongest && FALLBACK_COPY[strongest.key]) {
+    const copy = FALLBACK_COPY[strongest.key]
+    recs.push((strongest.avg ?? 0) >= 3.5 ? copy.high : copy.low)
     usedKeys.add(strongest.key)
+  }
+
+  // 3) Add a second candid note only if the next-weakest metric is clearly low;
+  //    otherwise fall through to a generally-positive consistency/goal nudge.
+  const nextWeak = byLowest.find((s) => !usedKeys.has(s.key))
+  if (nextWeak && (nextWeak.avg ?? 5) < 3 && FALLBACK_COPY[nextWeak.key]) {
+    recs.push(FALLBACK_COPY[nextWeak.key].low)
+    usedKeys.add(nextWeak.key)
   }
 
   // Fill any remaining slots with goal/consistency-oriented copy.
