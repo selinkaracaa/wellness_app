@@ -3,6 +3,7 @@ import { Clock } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import PageHeader from '../components/ui/PageHeader'
 import UserAvatar from '../components/ui/UserAvatar'
+import PhotoImage from '../components/ui/PhotoImage'
 import CameraCapture from '../components/CameraCapture'
 
 export default function Social() {
@@ -58,7 +59,7 @@ export default function Social() {
               style={{ marginLeft: i % 2 === 1 ? '1.5rem' : 0 }}
             >
               <div className="aspect-[4/5] relative">
-                <img src={post.imageUrl} alt="" className="w-full h-full object-cover" />
+                <PhotoImage src={post.imageUrl} alt={`${post.friendName}'s challenge photo`} className="w-full h-full" rounded="none" />
                 <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
               </div>
               <div className="p-4 flex items-center gap-3">

@@ -19,11 +19,21 @@ export default function CameraCapture({ onClose, onSuccess }: CameraCaptureProps
   const [cameraReady, setCameraReady] = useState(false)
 
   const startCamera = useCallback(async () => {
+    setCameraReady(false)
+    setError(null)
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+
+    const tryStream = async (constraints: MediaStreamConstraints) =>
+      navigator.mediaDevices.getUserMedia({ ...constraints, audio: false })
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false,
-      })
+      let stream: MediaStream
+      try {
+        stream = await tryStream({ video: { facingMode: 'environment' } })
+      } catch {
+        stream = await tryStream({ video: { facingMode: 'user' } })
+      }
+
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
@@ -31,7 +41,7 @@ export default function CameraCapture({ onClose, onSuccess }: CameraCaptureProps
         setCameraReady(true)
       }
     } catch {
-      setError('Camera access required. Live capture only — no gallery uploads.')
+      setError('Camera access required. Allow camera in your browser — live capture only.')
     }
   }, [])
 

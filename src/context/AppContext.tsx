@@ -64,6 +64,7 @@ interface AppContextType {
   pendingCheckInQuestion: string | null
   clearPendingQuestion: () => void
   loadDemo: () => void
+  resetExperience: () => void
 }
 
 function getWeekStart(): string {
@@ -322,6 +323,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState(merged)
   }
 
+  function resetExperience() {
+    localStorage.removeItem(STORAGE_KEY)
+    setState({ ...defaultState, weekStartDate: getWeekStart() })
+    setPendingCheckInQuestion(null)
+  }
+
   return (
     <AppContext.Provider
       value={{
@@ -337,6 +344,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         pendingCheckInQuestion,
         clearPendingQuestion,
         loadDemo,
+        resetExperience,
       }}
     >
       {children}

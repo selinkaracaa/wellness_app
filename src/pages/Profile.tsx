@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import PageHeader from '../components/ui/PageHeader'
 import UserAvatar from '../components/ui/UserAvatar'
@@ -7,8 +7,17 @@ import WeeklyModal from '../components/WeeklyModal'
 import { categoryPillLabel } from '../design/categoryTags'
 
 export default function Profile() {
-  const { state } = useApp()
+  const { state, resetExperience } = useApp()
+  const navigate = useNavigate()
   const [showWeekly, setShowWeekly] = useState(false)
+
+  function handleStartOver() {
+    resetExperience()
+    if (window.location.search.includes('demo')) {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+    navigate('/onboarding')
+  }
   const metrics = state.coreMetrics
 
   useEffect(() => {
@@ -87,6 +96,16 @@ export default function Profile() {
             </div>
           </div>
         )}
+
+        <div className="card-premium rounded-[1.25rem] p-4 space-y-3">
+          <p className="text-sm font-semibold text-ink">Start fresh</p>
+          <p className="text-xs text-muted leading-relaxed">
+            Resets onboarding, today&apos;s check-in, and the photo challenge so you can walk through the full flow again.
+          </p>
+          <button type="button" onClick={handleStartOver} className="btn-dark w-full py-3 text-sm tap-scale">
+            Start over
+          </button>
+        </div>
 
         <div className="text-center">
           <Link to="/fonts" className="text-xs font-semibold text-link tap-scale">

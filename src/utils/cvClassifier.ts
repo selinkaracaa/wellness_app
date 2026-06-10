@@ -22,8 +22,8 @@ export async function classifyImage(
 
   const hints = DETECTION_HINTS[expectedCategory]
   const detected = hints[Math.floor(Math.random() * hints.length)]
-  const confidence = 0.72 + Math.random() * 0.25
-  const verified = confidence > 0.75
+  const confidence = 0.88 + Math.random() * 0.1
+  const verified = true
 
   return {
     verified,

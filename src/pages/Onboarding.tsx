@@ -8,7 +8,7 @@ import { curateMetricsForGoals } from '../utils/aiRecalibration'
 import { categoryPillLabel } from '../design/categoryTags'
 
 export default function Onboarding() {
-  const { completeOnboarding, loadDemo } = useApp()
+  const { completeOnboarding } = useApp()
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
   const [selectedGoals, setSelectedGoals] = useState<GoalId[]>([])
@@ -34,18 +34,10 @@ export default function Onboarding() {
     navigate('/')
   }
 
-  function handleDemo() {
-    loadDemo()
-    navigate('/')
-  }
-
   return (
     <div className="min-h-screen page-canvas flex flex-col px-5 pt-12 pb-10">
-      <div className="flex items-center justify-between mb-10">
+      <div className="mb-10">
         <span className="font-display text-[1.5rem] tracking-tight text-ink">Cycles</span>
-        <button type="button" onClick={handleDemo} className="text-xs font-semibold text-link tap-scale">
-          VC demo
-        </button>
       </div>
 
       <AnimatePresence mode="wait">
@@ -60,8 +52,7 @@ export default function Onboarding() {
             </p>
             <div className="card-premium rounded-[1.25rem] p-5 mt-8">
               <p className="text-xs text-ink-soft leading-relaxed">
-                Logging five straight 1s still protects your streak. The product insight VCs care about: guilt is the
-                number-one churn driver in health apps.
+                Logging five straight 1s still protects your streak. Showing up matters more than a perfect score.
               </p>
             </div>
             <button type="button" onClick={() => setStep(1)} className="btn-dark w-full mt-auto py-4 flex items-center justify-center gap-2">
