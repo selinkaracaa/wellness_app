@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { LogOut, Settings } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import PageHeader from '../components/ui/PageHeader'
 import UserAvatar from '../components/ui/UserAvatar'
 import WeeklyModal from '../components/WeeklyModal'
+import SettingsModal from '../components/SettingsModal'
 import { categoryPillLabel } from '../design/categoryTags'
 import { GOALS } from '../data/habitPool'
 
@@ -12,6 +13,7 @@ export default function Profile() {
   const { state, resetExperience, logout } = useApp()
   const navigate = useNavigate()
   const [showWeekly, setShowWeekly] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   function handleStartOver() {
     resetExperience()
@@ -50,12 +52,20 @@ export default function Profile() {
 
       <div className="px-5 -mt-2 flex items-center gap-4 mb-6">
         <UserAvatar avatar={state.avatar} name={state.userName} size="lg" />
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-semibold text-ink">{state.userName}</p>
           <p className="text-xs text-muted mt-0.5">
             {state.streak} day streak · Level {state.level}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowSettings(true)}
+          className="w-10 h-10 rounded-full card-premium flex items-center justify-center tap-scale shrink-0"
+          aria-label="Open settings"
+        >
+          <Settings size={18} className="text-ink" />
+        </button>
       </div>
 
       <div className="px-5 grid grid-cols-3 gap-3 mb-8">
@@ -163,6 +173,7 @@ export default function Profile() {
       </div>
 
       <WeeklyModal open={showWeekly} onClose={() => setShowWeekly(false)} />
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   )
 }

@@ -14,7 +14,7 @@ export interface UserProfile {
   weightKg: number | null
 }
 
-interface AuthState {
+export interface AuthState {
   userName?: string
   profile?: UserProfile
   level?: number
@@ -109,6 +109,46 @@ export function signupRequest(input: SignupInput): Promise<AuthResult> {
 
 export function loginRequest(email: string, password: string): Promise<AuthResult> {
   return postAuth('/api/auth/login', { email, password })
+}
+
+export interface ProfileUpdate {
+  name?: string
+  age?: number | null
+  heightCm?: number | null
+  weightKg?: number | null
+}
+
+/**
+ * Persist profile edits (name/age/height/weight) for the signed-in user and
+ * return the refreshed server state. Requires a stored token.
+ */
+export async function updateProfileRequest(update: ProfileUpdate): Promise<AuthState> {
+  const token = getToken()
+  const body: Record<string, unknown> = {}
+  if (update.name !== undefined) body.name = update.name
+  if (update.age !== undefined) body.age = update.age
+  if (update.heightCm !== undefined) body.height_cm = update.heightCm
+  if (update.weightKg !== undefined) body.weight_kg = update.weightKg
+
+  let res: Response
+  try {
+    res = await fetch(`${BASE}/api/me`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    })
+  } catch {
+    throw new Error('Could not reach the server. Is the API running (npm run server)?')
+  }
+
+  const data = (await res.json().catch(() => ({}))) as { error?: string; state?: AuthState }
+  if (!res.ok) {
+    throw new Error(typeof data?.error === 'string' ? data.error : `Request failed (${res.status})`)
+  }
+  return data.state ?? {}
 }
 
 /**

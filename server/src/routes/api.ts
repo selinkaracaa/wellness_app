@@ -24,6 +24,57 @@ apiRouter.get('/me', async (req: AuthedRequest, res, next) => {
   }
 })
 
+// Update profile fields. Body may include any of: name, age, height_cm, weight_kg.
+// Numeric fields accept null/'' to clear. Only provided fields are touched.
+apiRouter.patch('/me', async (req: AuthedRequest, res, next) => {
+  try {
+    const body = (req.body ?? {}) as Record<string, unknown>
+    const updates: string[] = []
+    const values: unknown[] = []
+    let i = 1
+
+    if (body.name !== undefined) {
+      const name = String(body.name).trim()
+      if (!name) return res.status(400).json({ error: 'Name cannot be empty' })
+      updates.push(`name = $${i++}`)
+      values.push(name)
+    }
+
+    // Validate an optional numeric field; null/'' clears it. `integer` rounds to a whole number.
+    function addNumber(key: string, label: string, min: number, max: number, integer = false) {
+      if (body[key] === undefined) return
+      const raw = body[key]
+      if (raw === null || raw === '') {
+        updates.push(`${key} = $${i++}`)
+        values.push(null)
+        return
+      }
+      const n = Number(raw)
+      if (!Number.isFinite(n) || n < min || n > max) {
+        throw new Error(`${label} must be between ${min} and ${max}`)
+      }
+      updates.push(`${key} = $${i++}`)
+      values.push(integer ? Math.round(n) : Math.round(n * 10) / 10)
+    }
+
+    try {
+      addNumber('age', 'Age', 13, 120, true)
+      addNumber('height_cm', 'Height', 50, 272)
+      addNumber('weight_kg', 'Weight', 20, 500)
+    } catch (e) {
+      return res.status(400).json({ error: (e as Error).message })
+    }
+
+    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' })
+
+    values.push(req.userId!)
+    await query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${i}`, values)
+    await sendState(req.userId!, res)
+  } catch (err) {
+    next(err)
+  }
+})
+
 // Full check-in history (most recent first).
 apiRouter.get('/checkins', async (req: AuthedRequest, res, next) => {
   try {

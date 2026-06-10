@@ -17,10 +17,12 @@ import {
   signupRequest,
   loginRequest,
   checkInsRequest,
+  updateProfileRequest,
   setToken,
   clearToken,
   type SignupInput,
   type UserProfile,
+  type ProfileUpdate,
 } from '../utils/api'
 
 export interface CheckInEntry {
@@ -68,6 +70,8 @@ interface AppContextType {
   completeCheckIn: (answers: Record<string, number>, xp: number) => void
   updateTodayCheckIn: (answers: Record<string, number>) => void
   completeOnboarding: (goals: GoalId[], userName: string) => void
+  updateProfile: (update: ProfileUpdate) => Promise<void>
+  updateSelectedMetrics: (metrics: CoreMetric[]) => void
   completeWeeklyRecalibration: (subjectiveScore: number) => void
   submitPhotoChallenge: (imageDataUrl: string) => Promise<{ verified: boolean; message: string }>
   setActiveCycle: (cycleId: string) => void
@@ -299,6 +303,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  /**
+   * Persist profile edits (name/age/height/weight) to the server — it's the
+   * source of truth on login — then mirror the result into local state.
+   */
+  async function updateProfile(update: ProfileUpdate) {
+    const serverState = await updateProfileRequest(update)
+    setState((prev) => ({
+      ...prev,
+      userName: typeof serverState.userName === 'string' ? serverState.userName : prev.userName,
+      profile: normalizeProfile(serverState.profile, prev.profile),
+    }))
+  }
+
+  /**
+   * Replace the tracked check-in questions. Device-local (the goal/metric layer
+   * isn't server-backed), like the rest of the onboarding selection.
+   */
+  function updateSelectedMetrics(metrics: CoreMetric[]) {
+    setState((prev) => ({ ...prev, coreMetrics: metrics }))
+  }
+
   function completeCheckIn(answers: Record<string, number>, xp: number) {
     const entry: CheckInEntry = {
       date: new Date().toDateString(),
@@ -484,6 +509,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         completeCheckIn,
         updateTodayCheckIn,
         completeOnboarding,
+        updateProfile,
+        updateSelectedMetrics,
         completeWeeklyRecalibration,
         submitPhotoChallenge,
         setActiveCycle,
