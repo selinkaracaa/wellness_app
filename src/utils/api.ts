@@ -17,12 +17,28 @@ export interface UserProfile {
 interface AuthState {
   userName?: string
   profile?: UserProfile
+  level?: number
+  xp?: number
+  xpToNextLevel?: number
+  streak?: number
+  longestStreak?: number
+  totalCheckIns?: number
+  todayCheckedIn?: boolean
+  todayAnswers?: Record<string, number>
   [key: string]: unknown
 }
 
 export interface AuthResult {
   token: string
   state: AuthState
+}
+
+/** One persisted check-in as returned by GET /api/checkins (date is 'YYYY-MM-DD'). */
+export interface CheckInRecord {
+  date: string
+  answers: Record<string, number>
+  xpEarned: number
+  completedAt: string
 }
 
 export interface SignupInput {
@@ -93,4 +109,26 @@ export function signupRequest(input: SignupInput): Promise<AuthResult> {
 
 export function loginRequest(email: string, password: string): Promise<AuthResult> {
   return postAuth('/api/auth/login', { email, password })
+}
+
+/**
+ * Fetch the signed-in user's full check-in history (most recent first).
+ * Requires a token to already be stored (call after signup/login set it).
+ */
+export async function checkInsRequest(): Promise<CheckInRecord[]> {
+  const token = getToken()
+  let res: Response
+  try {
+    res = await fetch(`${BASE}/api/checkins`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+  } catch {
+    throw new Error('Could not reach the server. Is the API running (npm run server)?')
+  }
+
+  const data = (await res.json().catch(() => ({}))) as { error?: string; checkIns?: CheckInRecord[] }
+  if (!res.ok) {
+    throw new Error(typeof data?.error === 'string' ? data.error : `Request failed (${res.status})`)
+  }
+  return Array.isArray(data.checkIns) ? data.checkIns : []
 }

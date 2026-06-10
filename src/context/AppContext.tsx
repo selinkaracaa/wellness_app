@@ -16,6 +16,7 @@ import { createDemoState, isDemoMode } from '../design/demoState'
 import {
   signupRequest,
   loginRequest,
+  checkInsRequest,
   setToken,
   clearToken,
   type SignupInput,
@@ -94,6 +95,21 @@ function normalizeProfile(raw: unknown, fallback: UserProfile | null): UserProfi
     heightCm: num(p.heightCm, fallback?.heightCm ?? null),
     weightKg: num(p.weightKg, fallback?.weightKg ?? null),
   }
+}
+
+/** Pull a finite number off an untyped payload, else fall back. */
+function numOr(v: unknown, fallback: number): number {
+  return typeof v === 'number' && Number.isFinite(v) ? v : fallback
+}
+
+/**
+ * Server check-ins carry a 'YYYY-MM-DD' date, but the app's streak/week utils
+ * key off `Date.toDateString()`. Convert via local-midnight so the calendar day
+ * is preserved regardless of timezone (never `new Date('YYYY-MM-DD')`, which is UTC).
+ */
+function serverDateToKey(raw: string): string {
+  const [y, m, d] = raw.slice(0, 10).split('-').map(Number)
+  return new Date(y, m - 1, d).toDateString()
 }
 
 const defaultState: AppState = {
@@ -220,15 +236,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     const result = await loginRequest(email, password)
     setToken(result.token)
-    const serverName =
-      typeof result.state?.userName === 'string' ? result.state.userName : null
+    const s = result.state ?? {}
+    const serverName = typeof s.userName === 'string' ? s.userName : null
+
+    // Pull the persisted check-in history so insights/streaks have data. Best
+    // effort: if it fails we still render the aggregates from the login payload.
+    let checkIns: CheckInEntry[] = []
+    let historyLoaded = false
+    try {
+      const records = await checkInsRequest()
+      checkIns = records.map((r) => ({ ...r, date: serverDateToKey(r.date) }))
+      historyLoaded = true
+    } catch {
+      // history endpoint unreachable — fall back to server-reported aggregates
+    }
+
     setState((prev) => {
       const goals = prev.goals.length ? prev.goals : (['weight_loss', 'energy'] as GoalId[])
       const coreMetrics = prev.coreMetrics.length ? prev.coreMetrics : curateMetricsForGoals(goals)
+
+      // Recompute streak from history when we have it (matches how the rest of
+      // the app derives streaks); otherwise trust the server's value.
+      const derived = historyLoaded ? calculateConsistencyStreak(checkIns) : null
+      const streak = derived ? derived.streak : numOr(s.streak, prev.streak)
+      const longestStreak = Math.max(
+        numOr(s.longestStreak, prev.longestStreak),
+        derived ? derived.longestStreak : 0,
+      )
+
       return {
         ...prev,
         userName: serverName || prev.userName,
-        profile: normalizeProfile(result.state?.profile, prev.profile),
+        profile: normalizeProfile(s.profile, prev.profile),
+        level: numOr(s.level, prev.level),
+        xp: numOr(s.xp, prev.xp),
+        xpToNextLevel: numOr(s.xpToNextLevel, prev.xpToNextLevel),
+        totalCheckIns: numOr(s.totalCheckIns, prev.totalCheckIns),
+        streak,
+        longestStreak,
+        checkIns,
+        todayCheckedIn: Boolean(s.todayCheckedIn),
+        todayAnswers: (s.todayAnswers as Record<string, number>) ?? {},
         goals,
         coreMetrics,
         weekStartDate: prev.coreMetrics.length ? prev.weekStartDate : getWeekStart(),

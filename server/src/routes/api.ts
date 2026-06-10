@@ -28,7 +28,9 @@ apiRouter.get('/me', async (req: AuthedRequest, res, next) => {
 apiRouter.get('/checkins', async (req: AuthedRequest, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT date, answers, xp_earned, completed_at
+      // to_char keeps the calendar date a plain 'YYYY-MM-DD' string; a bare DATE
+      // gets serialized to a UTC timestamp downstream and can shift a day.
+      `SELECT to_char(date, 'YYYY-MM-DD') AS date, answers, xp_earned, completed_at
          FROM check_ins WHERE user_id = $1 ORDER BY date DESC`,
       [req.userId!],
     )
