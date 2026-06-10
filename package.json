@@ -10,6 +10,7 @@
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:seed": "tsx server/src/seed.ts",
+    "db:seed:user": "tsx server/src/seedUser.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
