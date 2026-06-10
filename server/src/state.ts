@@ -17,7 +17,8 @@ export async function buildState(userId: string) {
     await Promise.all([
       query(
         `SELECT name, avatar, level, xp, xp_to_next_level, streak,
-                longest_streak, total_check_ins, last_check_in_date
+                longest_streak, total_check_ins, last_check_in_date,
+                age, height_cm, weight_kg
            FROM users WHERE id = $1`,
         [userId],
       ),
@@ -110,6 +111,12 @@ export async function buildState(userId: string) {
   return {
     userName: user.name,
     avatar: user.avatar,
+    profile: {
+      age: user.age ?? null,
+      // NUMERIC comes back from pg as a string — coerce to number.
+      heightCm: user.height_cm != null ? Number(user.height_cm) : null,
+      weightKg: user.weight_kg != null ? Number(user.weight_kg) : null,
+    },
     level: user.level,
     xp: user.xp,
     xpToNextLevel: user.xp_to_next_level,

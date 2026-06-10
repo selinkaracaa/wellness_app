@@ -4,8 +4,10 @@
  *
  *   npm run db:seed:user
  *   npm run db:seed:user -- --email=me@test.dev --password=hunter2 --name="Sam" --days=30
+ *   npm run db:seed:user -- --age=29 --height=168 --weight=63
  *
- * Or via env vars: SEED_EMAIL, SEED_PASSWORD, SEED_NAME, SEED_DAYS.
+ * Or via env vars: SEED_EMAIL, SEED_PASSWORD, SEED_NAME, SEED_DAYS,
+ * SEED_AGE, SEED_HEIGHT (cm), SEED_WEIGHT (kg).
  *
  * Idempotent: re-running with the same email wipes that user's check-ins and
  * reseeds them. Requires the schema/global seed to exist (run `npm run db:seed`
@@ -32,6 +34,9 @@ const email = (arg('email') ?? process.env.SEED_EMAIL ?? 'demo@bloom.app').trim(
 const password = arg('password') ?? process.env.SEED_PASSWORD ?? 'demo1234'
 const name = arg('name') ?? process.env.SEED_NAME ?? 'Demo User'
 const days = Math.max(1, Math.min(120, Number(arg('days') ?? process.env.SEED_DAYS ?? 21)))
+const age = Math.round(Number(arg('age') ?? process.env.SEED_AGE ?? 31))
+const heightCm = Math.round(Number(arg('height') ?? process.env.SEED_HEIGHT ?? 175) * 10) / 10
+const weightKg = Math.round(Number(arg('weight') ?? process.env.SEED_WEIGHT ?? 72) * 10) / 10
 
 // --- helpers ---------------------------------------------------------------
 
@@ -95,11 +100,13 @@ async function main() {
     // 1. Upsert the user (reuse the row if the email already exists).
     const passwordHash = await hashPassword(password)
     const { rows } = await c.query<{ id: string }>(
-      `INSERT INTO users (name, email, password_hash)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, password_hash = EXCLUDED.password_hash
+      `INSERT INTO users (name, email, password_hash, age, height_cm, weight_kg)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (email) DO UPDATE SET
+         name = EXCLUDED.name, password_hash = EXCLUDED.password_hash,
+         age = EXCLUDED.age, height_cm = EXCLUDED.height_cm, weight_kg = EXCLUDED.weight_kg
        RETURNING id`,
-      [name, email, passwordHash],
+      [name, email, passwordHash, age, heightCm, weightKg],
     )
     const userId = rows[0].id
 
@@ -144,6 +151,7 @@ async function main() {
     console.log('✅ Sample user seeded.')
     console.log(`   email:    ${email}`)
     console.log(`   password: ${password}`)
+    console.log(`   profile:  age ${age}, ${heightCm}cm, ${weightKg}kg`)
     console.log(`   check-ins: ${days} (streak ${days}, level ${progress.level})`)
   })
 

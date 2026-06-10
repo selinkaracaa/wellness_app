@@ -46,7 +46,7 @@ export default function Home() {
   // Signature changes whenever the inputs that should refresh advice change.
   const sig = `${state.goals.join(',')}|${state.checkIns.length}|${state.todayCheckedIn}|${
     state.checkIns[state.checkIns.length - 1]?.date ?? 'none'
-  }`
+  }|${state.profile?.age ?? ''}-${state.profile?.heightCm ?? ''}-${state.profile?.weightKg ?? ''}`
 
   const [recs, setRecs] = useState<Recommendation[]>([])
   const [source, setSource] = useState<'gemini' | 'fallback'>('fallback')
@@ -77,6 +77,7 @@ export default function Home() {
         streak: state.streak,
         totalCheckIns: state.totalCheckIns,
         todayCheckedIn: state.todayCheckedIn,
+        profile: state.profile,
       })
       setRecs(result.recs)
       setSource(result.source)

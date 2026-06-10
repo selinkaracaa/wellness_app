@@ -13,6 +13,14 @@ import { curateMetricsForGoals, recalibrateMetrics } from '../utils/aiRecalibrat
 import { calculateConsistencyStreak, isWeeklyRecalibrationDue } from '../utils/streak'
 import { classifyImage } from '../utils/cvClassifier'
 import { createDemoState, isDemoMode } from '../design/demoState'
+import {
+  signupRequest,
+  loginRequest,
+  setToken,
+  clearToken,
+  type SignupInput,
+  type UserProfile,
+} from '../utils/api'
 
 export interface CheckInEntry {
   date: string
@@ -23,6 +31,7 @@ export interface CheckInEntry {
 
 export interface AppState {
   userName: string
+  profile: UserProfile | null
   avatar: string
   level: number
   xp: number
@@ -53,6 +62,8 @@ export interface AppState {
 
 interface AppContextType {
   state: AppState
+  signup: (input: SignupInput) => Promise<void>
+  login: (email: string, password: string) => Promise<void>
   completeCheckIn: (answers: Record<string, number>, xp: number) => void
   completeOnboarding: (goals: GoalId[], userName: string) => void
   completeWeeklyRecalibration: (subjectiveScore: number) => void
@@ -73,8 +84,21 @@ function getWeekStart(): string {
   return d.toDateString()
 }
 
+/** Coerce a server profile payload into a clean UserProfile, with fallbacks. */
+function normalizeProfile(raw: unknown, fallback: UserProfile | null): UserProfile {
+  const p = (raw ?? {}) as Partial<UserProfile>
+  const num = (v: unknown, fb: number | null): number | null =>
+    typeof v === 'number' && Number.isFinite(v) ? v : fb
+  return {
+    age: num(p.age, fallback?.age ?? null),
+    heightCm: num(p.heightCm, fallback?.heightCm ?? null),
+    weightKg: num(p.weightKg, fallback?.weightKg ?? null),
+  }
+}
+
 const defaultState: AppState = {
   userName: 'You',
+  profile: null,
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=85&auto=format&fit=crop',
   level: 1,
   xp: 0,
@@ -167,6 +191,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
   }, [state])
+
+  /**
+   * Create an account on the backend and stash the token + profile locally.
+   * Does NOT finish onboarding — the caller continues into the goals flow.
+   */
+  async function signup(input: SignupInput) {
+    const result = await signupRequest(input)
+    setToken(result.token)
+    const profile = normalizeProfile(result.state?.profile, {
+      age: input.age,
+      heightCm: input.heightCm,
+      weightKg: input.weightKg,
+    })
+    setState((prev) => ({
+      ...prev,
+      userName: input.name || prev.userName,
+      profile,
+    }))
+  }
+
+  /**
+   * Authenticate a returning user. Pulls their name + profile from the server,
+   * marks onboarding complete, and ensures a usable set of core metrics exists
+   * (the goal/metric layer is device-local, so seed defaults if this device has
+   * none yet).
+   */
+  async function login(email: string, password: string) {
+    const result = await loginRequest(email, password)
+    setToken(result.token)
+    const serverName =
+      typeof result.state?.userName === 'string' ? result.state.userName : null
+    setState((prev) => {
+      const goals = prev.goals.length ? prev.goals : (['weight_loss', 'energy'] as GoalId[])
+      const coreMetrics = prev.coreMetrics.length ? prev.coreMetrics : curateMetricsForGoals(goals)
+      return {
+        ...prev,
+        userName: serverName || prev.userName,
+        profile: normalizeProfile(result.state?.profile, prev.profile),
+        goals,
+        coreMetrics,
+        weekStartDate: prev.coreMetrics.length ? prev.weekStartDate : getWeekStart(),
+        onboardingComplete: true,
+      }
+    })
+  }
 
   function completeOnboarding(goals: GoalId[], userName: string) {
     const coreMetrics = curateMetricsForGoals(goals)
@@ -325,6 +394,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   function resetExperience() {
     localStorage.removeItem(STORAGE_KEY)
+    clearToken()
     setState({ ...defaultState, weekStartDate: getWeekStart() })
     setPendingCheckInQuestion(null)
   }
@@ -333,6 +403,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         state,
+        signup,
+        login,
         completeCheckIn,
         completeOnboarding,
         completeWeeklyRecalibration,

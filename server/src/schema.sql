@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
   name             TEXT NOT NULL,
   email            TEXT NOT NULL UNIQUE,
   password_hash    TEXT NOT NULL,
+  age              INT,
+  height_cm        NUMERIC(5,1),
+  weight_kg        NUMERIC(5,1),
   avatar           TEXT NOT NULL DEFAULT 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=85&auto=format&fit=crop',
   level            INT NOT NULL DEFAULT 1,
   xp               INT NOT NULL DEFAULT 0,
@@ -18,6 +21,11 @@ CREATE TABLE IF NOT EXISTS users (
   last_check_in_date DATE,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Profile fields added after v1; ALTERs keep already-provisioned DBs in sync.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS age       INT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS height_cm NUMERIC(5,1);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS weight_kg NUMERIC(5,1);
 
 CREATE TABLE IF NOT EXISTS check_ins (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),

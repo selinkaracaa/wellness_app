@@ -16,6 +16,13 @@ export interface RecommendationResult {
   source: 'gemini' | 'fallback'
 }
 
+/** Body metrics from sign-up, used to tailor targets (hydration, protein, etc.). */
+export interface RecommendationProfile {
+  age: number | null
+  heightCm: number | null
+  weightKg: number | null
+}
+
 export interface RecommendationInput {
   userName: string
   goals: GoalId[]
@@ -24,6 +31,7 @@ export interface RecommendationInput {
   streak: number
   totalCheckIns: number
   todayCheckedIn: boolean
+  profile?: RecommendationProfile | null
 }
 
 interface MetricSummary {
@@ -67,6 +75,27 @@ function goalLabels(goals: GoalId[]): string[] {
   return goals.map((g) => GOALS.find((x) => x.id === g)?.label ?? g)
 }
 
+function bmiCategory(bmi: number): string {
+  if (bmi < 18.5) return 'underweight'
+  if (bmi < 25) return 'healthy range'
+  if (bmi < 30) return 'overweight'
+  return 'obese'
+}
+
+/** One-line body summary for the prompt, or null when nothing useful is set. */
+function describeProfile(profile: RecommendationProfile | null | undefined): string | null {
+  if (!profile) return null
+  const parts: string[] = []
+  if (profile.age != null) parts.push(`age ${profile.age}`)
+  if (profile.heightCm != null) parts.push(`height ${profile.heightCm}cm`)
+  if (profile.weightKg != null) parts.push(`weight ${profile.weightKg}kg`)
+  if (profile.heightCm != null && profile.weightKg != null && profile.heightCm > 0) {
+    const bmi = profile.weightKg / (profile.heightCm / 100) ** 2
+    parts.push(`BMI ${round1(bmi)} (${bmiCategory(bmi)})`)
+  }
+  return parts.length ? parts.join(', ') : null
+}
+
 function buildPrompt(input: RecommendationInput, summaries: MetricSummary[]): string {
   const goals = goalLabels(input.goals)
   const metricLines = summaries
@@ -76,6 +105,8 @@ function buildPrompt(input: RecommendationInput, summaries: MetricSummary[]): st
         : `- ${s.label}: avg ${s.avg}/5, latest ${s.latest}/5, trend ${s.trend}`
     )
     .join('\n')
+
+  const profileLine = describeProfile(input.profile)
 
   return [
     'You are a candid but supportive wellness coach inside "Cycles", a daily self-check-in app.',
@@ -92,16 +123,22 @@ function buildPrompt(input: RecommendationInput, summaries: MetricSummary[]): st
     '- Each "body": ONE sentence, at most 18 words, concrete and actionable.',
     '- Ground every recommendation in the actual numbers/trends below; call out low averages or declines directly and matter-of-factly.',
     '- Tie advice to their stated goals where natural.',
+    profileLine
+      ? '- Use the body profile to make targets concrete (e.g. a rough daily water or protein goal scaled to their weight, age-appropriate activity); keep it practical and non-medical, and never moralize about body weight or appearance.'
+      : null,
     '- Set "metricKey" to the single most relevant key from this list, or omit it: ' +
       summaries.map((s) => s.key).join(', ') + '.',
     '',
     `Goals: ${goals.length ? goals.join(', ') : 'general wellbeing'}`,
+    profileLine ? `Body profile: ${profileLine}.` : null,
     `Logging streak: ${input.streak} days. Total check-ins: ${input.totalCheckIns}. Checked in today: ${input.todayCheckedIn ? 'yes' : 'not yet'}.`,
     'Recent self-ratings (1 worst – 5 best):',
     metricLines || '- no check-ins yet',
     '',
     'Return ONLY a JSON array of exactly 3 objects with keys "title", "body", and optional "metricKey".',
-  ].join('\n')
+  ]
+    .filter((line): line is string => line !== null)
+    .join('\n')
 }
 
 const GEMINI_SCHEMA = {
